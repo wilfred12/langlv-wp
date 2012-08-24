@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<BWSharedResource>
+    <name>tcp_iso8583_listener</name>
+    <resourceType>ae.shared.TCPSharedconnection</resourceType>
+    <config>
+        <enableDNSLookup>true</enableDNSLookup>
+        <Host>localhost</Host>
+        <Port>%%G_CHANNELS/G_INCOMMING/TCP_PORT%%</Port>
+    </config>
+</BWSharedResource>
