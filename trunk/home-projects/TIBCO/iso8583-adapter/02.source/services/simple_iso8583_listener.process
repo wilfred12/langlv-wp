@@ -1,0 +1,261 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<pd:ProcessDefinition xmlns:ns2="www.tibco.com/plugin/java/JavaMethodActivityInput" xmlns:pd="http://xmlns.tibco.com/bw/process/2003" xmlns:ns1="www.tibco.com/plugin/java/JavaMethodActivityOutput" xmlns:xsl="http://www.w3.org/1999/XSL/Transform" xmlns:ns="http://xmlns.tibco.com/2003/5/bw/plugins/tcp" xmlns:ns3="http://www.tibco.com/pe/WriteToLogActivitySchema" xmlns:pfx="http://langlv.homeproject.org/iso8583adapter/schemas">
+    <xs:import xmlns:xs="http://www.w3.org/2001/XMLSchema" namespace="http://langlv.homeproject.org/iso8583adapter/schemas" schemaLocation="/schemas/isomsg.xsd"/>
+    <pd:name>services/simple_iso8583_listener.process</pd:name>
+    <pd:startName>TCP Receiver</pd:startName>
+    <pd:startX>0</pd:startX>
+    <pd:startY>0</pd:startY>
+    <pd:returnBindings/>
+    <pd:starter name="TCP Receiver">
+        <pd:type>com.tibco.plugin.tcp.TCPEventSource</pd:type>
+        <pd:resourceType>ae.activities.TCPEventSource</pd:resourceType>
+        <pd:x>70</pd:x>
+        <pd:y>79</pd:y>
+        <config>
+            <sharedConnection>/channels/incomming/tcp_iso8583_listener.sharedtcp</sharedConnection>
+        </config>
+        <pd:inputBindings/>
+    </pd:starter>
+    <pd:endName>End</pd:endName>
+    <pd:endX>896</pd:endX>
+    <pd:endY>82</pd:endY>
+    <pd:errorSchemas/>
+    <pd:processVariables/>
+    <pd:targetNamespace>http://langlv.homeproject.org/iso8583adapter/process</pd:targetNamespace>
+    <pd:activity name="read_msg_header">
+        <pd:type>com.tibco.plugin.tcp.TCPReadActivity</pd:type>
+        <pd:resourceType>ae.activities.TCPRead</pd:resourceType>
+        <pd:x>156</pd:x>
+        <pd:y>161</pd:y>
+        <config>
+            <dataType>Binary</dataType>
+            <Separator>SEPARATOR_NONE</Separator>
+            <SeparatorBinary>SEPARATOR_NONE</SeparatorBinary>
+            <Encoding>ASCII</Encoding>
+            <bytesToRead>4</bytesToRead>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <ns:connection>
+                    <xsl:value-of select="$TCP-Receiver/ns:ActivityOutput/ns:connection"/>
+                </ns:connection>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="decode_msg_header">
+        <pd:type>com.tibco.plugin.java.JavaMethodActivity</pd:type>
+        <pd:resourceType>ae.activities.JavaMethodActivity</pd:resourceType>
+        <pd:x>257</pd:x>
+        <pd:y>79</pd:y>
+        <config>
+            <ConstructDeclaredClass>false</ConstructDeclaredClass>
+            <CacheConstructedClass>false</CacheConstructedClass>
+            <InvokeCleanupMethod>false</InvokeCleanupMethod>
+            <MethodInfo>
+                <classLocation>d:/workspace/project/home_project/tibco/iso8583-adapter/03.libs/jpos/javalibs.jar</classLocation>
+                <classPath>/alias_libraries/jpos_framework.aliaslib</classPath>
+                <className>org.langlv.homeprj.MessageUtils.MessageUtils</className>
+                <methodName>decodeHeader</methodName>
+                <methodReturn>int</methodReturn>
+                <methodParameter>[B</methodParameter>
+            </MethodInfo>
+        </config>
+        <pd:inputBindings>
+            <ns2:JavaMethodActivityInput>
+                <MethodParameters>
+                    <Parameter1>
+                        <xsl:value-of select="$read_msg_header/ns:ActivityOutput/ns:data"/>
+                    </Parameter1>
+                </MethodParameters>
+            </ns2:JavaMethodActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="read_msg_body">
+        <pd:type>com.tibco.plugin.tcp.TCPReadActivity</pd:type>
+        <pd:resourceType>ae.activities.TCPRead</pd:resourceType>
+        <pd:x>343</pd:x>
+        <pd:y>164</pd:y>
+        <config>
+            <dataType>Binary</dataType>
+            <Separator>SEPARATOR_NONE</Separator>
+            <SeparatorBinary>SEPARATOR_NONE</SeparatorBinary>
+            <Encoding/>
+        </config>
+        <pd:inputBindings>
+            <ns:ActivityInput>
+                <ns:connection>
+                    <xsl:value-of select="$TCP-Receiver/ns:ActivityOutput/ns:connection"/>
+                </ns:connection>
+                <xsl:if test="$decode_msg_header/ns1:JavaMethodActivityOutput/MethodReturnValue">
+                    <ns:bytesToRead>
+                        <xsl:value-of select="$decode_msg_header/ns1:JavaMethodActivityOutput/MethodReturnValue"/>
+                    </ns:bytesToRead>
+                </xsl:if>
+            </ns:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="decode_msg_body">
+        <pd:type>com.tibco.plugin.java.JavaMethodActivity</pd:type>
+        <pd:resourceType>ae.activities.JavaMethodActivity</pd:resourceType>
+        <pd:x>461</pd:x>
+        <pd:y>81</pd:y>
+        <config>
+            <ConstructDeclaredClass>false</ConstructDeclaredClass>
+            <CacheConstructedClass>false</CacheConstructedClass>
+            <InvokeCleanupMethod>false</InvokeCleanupMethod>
+            <MethodInfo>
+                <classLocation>d:/workspace/project/home_project/tibco/iso8583-adapter/03.libs/jpos/javalibs.jar</classLocation>
+                <classPath>/alias_libraries/jpos_framework.aliaslib</classPath>
+                <className>org.langlv.homeprj.MessageUtils.MessageUtils</className>
+                <methodName>decodeMessage</methodName>
+                <methodReturn>java.lang.String</methodReturn>
+                <methodParameter>[B</methodParameter>
+            </MethodInfo>
+        </config>
+        <pd:inputBindings>
+            <ns2:JavaMethodActivityInput>
+                <MethodParameters>
+                    <Parameter1>
+                        <xsl:value-of select="$read_msg_body/ns:ActivityOutput/ns:data"/>
+                    </Parameter1>
+                </MethodParameters>
+            </ns2:JavaMethodActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Log">
+        <pd:type>com.tibco.pe.core.WriteToLogActivity</pd:type>
+        <pd:resourceType>ae.activities.log</pd:resourceType>
+        <pd:x>803</pd:x>
+        <pd:y>83</pd:y>
+        <config>
+            <role>User</role>
+        </config>
+        <pd:inputBindings>
+            <ns3:ActivityInput>
+                <message>
+                    <xsl:value-of select="$Render-XML/xmlString"/>
+                </message>
+                <msgCode>
+                    <xsl:value-of select="&quot;Decoded iso message: &quot;"/>
+                </msgCode>
+            </ns3:ActivityInput>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Render XML">
+        <pd:type>com.tibco.plugin.xml.XMLRendererActivity</pd:type>
+        <pd:resourceType>ae.activities.XMLRendererActivity</pd:resourceType>
+        <pd:x>700</pd:x>
+        <pd:y>81</pd:y>
+        <config>
+            <renderAsText>text</renderAsText>
+            <validateInput>false</validateInput>
+            <textEncoding>UTF-8</textEncoding>
+            <renderDefaultPrefix>true</renderDefaultPrefix>
+            <term ref="pfx:isomsg"/>
+        </config>
+        <pd:inputBindings>
+            <xsl:for-each select="$Parse-XML/pfx:isomsg">
+                <pfx:isomsg>
+                    <xsl:if test="@mti">
+                        <xsl:attribute name="mti">
+                            <xsl:value-of select="@mti"/>
+                        </xsl:attribute>
+                    </xsl:if>
+                    <xsl:if test="@pcode">
+                        <xsl:attribute name="pcode">
+                            <xsl:value-of select="@pcode"/>
+                        </xsl:attribute>
+                    </xsl:if>
+                    <xsl:for-each select="pfx:field">
+                        <pfx:field>
+                            <xsl:if test="@id">
+                                <xsl:attribute name="id">
+                                    <xsl:value-of select="@id"/>
+                                </xsl:attribute>
+                            </xsl:if>
+                            <xsl:if test="@value">
+                                <xsl:attribute name="value">
+                                    <xsl:value-of select="@value"/>
+                                </xsl:attribute>
+                            </xsl:if>
+                            <xsl:value-of select="."/>
+                        </pfx:field>
+                    </xsl:for-each>
+                </pfx:isomsg>
+            </xsl:for-each>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:activity name="Parse XML">
+        <pd:type>com.tibco.plugin.xml.XMLParseActivity</pd:type>
+        <pd:resourceType>ae.activities.XMLParseActivity</pd:resourceType>
+        <pd:x>592</pd:x>
+        <pd:y>80</pd:y>
+        <config>
+            <inputStyle>text</inputStyle>
+            <xsdVersion>default</xsdVersion>
+            <validateOutput>false</validateOutput>
+            <term ref="pfx:isomsg"/>
+        </config>
+        <pd:inputBindings>
+            <xmlString>
+                <xsl:value-of select="$decode_msg_body/ns1:JavaMethodActivityOutput/MethodReturnValue"/>
+            </xmlString>
+        </pd:inputBindings>
+    </pd:activity>
+    <pd:transition>
+        <pd:from>TCP Receiver</pd:from>
+        <pd:to>read_msg_header</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>read_msg_header</pd:from>
+        <pd:to>decode_msg_header</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>decode_msg_header</pd:from>
+        <pd:to>read_msg_body</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>read_msg_body</pd:from>
+        <pd:to>decode_msg_body</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Log</pd:from>
+        <pd:to>End</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>decode_msg_body</pd:from>
+        <pd:to>Parse XML</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Parse XML</pd:from>
+        <pd:to>Render XML</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+    <pd:transition>
+        <pd:from>Render XML</pd:from>
+        <pd:to>Log</pd:to>
+        <pd:lineType>Default</pd:lineType>
+        <pd:lineColor>-16777216</pd:lineColor>
+        <pd:conditionType>always</pd:conditionType>
+    </pd:transition>
+</pd:ProcessDefinition>
